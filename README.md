@@ -64,6 +64,7 @@ if(n>1){
 ## DateNight search component 
 
 ```javascript
+/*dependencies*/
 import React, {Component} from "react";
 import MapView from '../mapView/mapView';
 import Input from './input'
@@ -192,7 +193,7 @@ class Search extends Component {
                         }))
                       }}>Remove</div>
                     </div>
-            )) : <p>Your Current Itinerary will appear here once you've added something to it</p>}
+            )) : <p>Your Current Itinerary will appear here once you have added something to it</p>}
             {this.state.currentItinerary.length > 0 ?
             <Modal
                 header={<h5>Review Itinerary</h5>}
