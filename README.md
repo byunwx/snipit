@@ -1,5 +1,5 @@
 # snipit
-
+CRUD
 ```javascript
 
 module.exports  = (app)=>{
@@ -114,7 +114,7 @@ class App extends Component {
 }
 
 ```
-
+SERVER
 ```javascript
 
 const passport = require("./config/passport");
@@ -249,7 +249,7 @@ db.sequelize.sync().then(() => {
 });
 
 ```
-
+LOGIC
 ```javascript
 
 var bandIs = function (){
