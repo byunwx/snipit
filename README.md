@@ -1,561 +1,284 @@
 # snipit
-Catch band it logic.js
+## if the string on process.argv[2] is palindrome console.log palindrome if not not palindrome
 ```javascript
-/ global map variables
-var markers = [];
-var lati;
-var longi;
-var newVenue = "";
-// var map;
-
-var bandIs = function (){
-
-  var name = window.location.href;
-  var thing= name.split("/")
-  var lastUrl= thing[thing.length-1];
-
-    var bandQuery = lastUrl;
-
-    var queryURL = "https://rest.bandsintown.com/artists/" + bandQuery + "/events?app_id=bandit";
-    var queryURL2 = "https://rest.bandsintown.com/artists/" + bandQuery + "?app_id=bandit";
-
-    $.ajax({
-        url: queryURL2,
-        method: "GET"
-    }).then(function(resultsEvent){
-      var image= resultsEvent.image_url;
-      var name= resultsEvent.name;
-      var newImage=$("<img>").attr({"src": image, "class": "img img-responsive img-fluid", "alt": "click here to go to"+resultsEvent.name+"'s facebook"});
-      var newAncher=$("<a>").attr({"href": resultsEvent.facebook_page_url, "target": "_blank"});
-      newAncher.append(newImage);
-      var newName=$("<h1>").text(name);
-      $("#artistImage").append(newAncher);
-      $("#artistName").prepend(newName);
-    });
-    //  band is in town api
-    $.ajax({
-        url: queryURL,
-        method: "GET"
-    }).then(function(resultsEvent){
-
-        // populate map with preset coordinates to the Anthem in DC
-        initMapFirst();
-        // looping through the array of upcoming events
-      if (resultsEvent.length==0) {
-          alert("There is no concert or event set up for band :"+bandQuery);
-        }
-        for ( var i =0; i<resultsEvent.length; i++){
-
-            var rawDate=resultsEvent[i].datetime.split("T");
-            var dateArr=[];
-            dateArr.push(rawDate[0]);
-            dateArr.push(" Time: ");
-            var time=rawDate[1].split(":");
-            if (time[0]>12){
-              time[0]-=12;
-              rawDate[1]=time.join(":");
-              dateArr.push(rawDate[1]);
-              dateArr.push("pm");
-            }else{
-              dateArr.push(rawDate[1]);
-              dateArr.push("am");
-            }
-
-            var date = dateArr.join(" ");
-
-        // looping through the array of upcoming events
-
-
-            var venue = resultsEvent[i].venue;
-            var lat = venue.latitude;
-            var long = venue.longitude;
-            var line = $("<hr>")
-            var div = $("<div>").attr({
-                "id": venue.name,
-                "class": "event",
-            });
-            var ticket =$("<a class='btn bg-secondary getTix'>").text("GET Ticket");
-              ticket.attr({"href": resultsEvent[i].url, "target":"_blank"});
-            var showtime = $("<p class='date'>").text("Date: " + date);
-            var city = $("<p class='city'>").text("City: " +venue.city);
-            var name = $("<p class='venueButtons'>").text(venue.name).attr({
-                "class": "venue",
-                // Venue location information is set to the the data types below
-                "data-venue": venue.name,
-                "data-date": resultsEvent[i].datetime,
-                "data-city": venue.city,
-                "data-lat": lat,
-                "data-long": long
-            });
-            if (i==0) {
-              initMap(venue.name, venue.latitude, venue.longitude);
-            };
-            // render the information to the html page, this will be adjusted
-            div.append(city, name, showtime, ticket, line);
-            // this ajax call works but is currently being appended to a placeholder that does not exist
-            $("#artistLocation").append(div);
-
-        }
-        yelpfunction();
-        return(keys(bandQuery))
-    })
+var string = ""
+if (process.argv[2]) {
+  string=process.argv[2];
 }
+var stringHalf = 10;
+var count= 0;
 
-// spotify functionality
-// brings access tokens from server side to client and refreshes them
-var keys = function(bandQuery){
-  var spotifyQuery=bandQuery
-
-  $("#dump").empty();
-  $.get("/api", function(data){
-
-      var refresh  = data[0].refresh_token;
-  return refreshCall(refresh)
-  })
-  var refreshCall =function(refresh){
-      $.ajax({
-          url: "/refresh_token",
-          data: {
-              "refresh_token": refresh
-          }
-      }).done(function(data){
-          access_token = data.access_token;
-      return firstCall(access_token, spotifyQuery)
-  })}
-}
-var firstCall = function(access_token, spotifyQuery){
-  $.ajax({
-  url: 'https://api.spotify.com/v1/search?q=' + spotifyQuery + '&type=Artist',
-  beforeSend: function(xhr) {
-       xhr.setRequestHeader("Authorization", "Bearer " + access_token)
-  }, success: function(data){
-      var id = data.artists.items[0].id;
-      return topTracks(id, access_token);
-
-  }
-  })
-}
-var topTracks= function(id, access_token){
-  $.ajax({
-      url: "https://api.spotify.com/v1/artists/" + id + "/top-tracks?country=es",
-      beforeSend: function(xhr) {
-          xhr.setRequestHeader("Authorization", "Bearer " + access_token)
-  }, success: function(data) {
-      for (var i=0; i<3; i++){
-          var topID = data.tracks[i].id;
-          var div = $("<div>").attr("class", "tracks");
-          var player = $("<iframe>").attr({
-              "src": "https://open.spotify.com/embed/track/" + topID,
-              "frameborder": 0,
-              "allowtransparency": "true",
-              "allow": "encrypted-media",
-              "class": "topTracks"
-          })
-          div.append(player);
-          $("#dump").append(div);
-          // $("#dump").append(player);
-      }
-  }
-  })
-}
-//var yelpfunction= function(){
-  // function that occurs when the user pick a single venue
-
-var yelpfunction=function(){
-  $(".venue").on("click", function(){
-
-    var newVenue = $(this).attr("data-venue")
-    var lati = $(this).attr("data-lat")
-    var longi = $(this).attr("data-long")
-    var userSelects="bar, restaurant"; //have user select which catagory to select in html so they can choose what stores
-    // clear yelp results on every click of venue
-    $("#yelpResults").empty()
-    initMap(newVenue, lati, longi)
-    // addMarker(newVenue)
-
-    var newSearchRequest= {
-      categories: userSelects,
-      latitude: lati,
-      longitude: longi
+if (string=="") {
+  console.log("You need to write something")
+}else if (string.length%2 == 0) {
+  stringHalf= string.length/2-1;
+  for (var i = 0; i < stringHalf; i++) {
+    if(string[i]==string[string.length-1-i]){
+      count+=1;
     }
-    $.post("/yelp", newSearchRequest, function(data){
-      // console loging all the data as array and json object
-      var location = [];
-      // loop to go log all data in the array
-      for (var i = 0; i < data.length; i++) {
-        var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        var yelpResultsCard = $("<p>")
-        var yelpImage = $("<img>")
-        yelpImage.attr("src", data[i].img)
-        yelpImage.attr("class", "card-img-top")
-        var yelpName = data[i].name
-        var add1 = data[i].address[0]
-        var add2 = data[i].address[1]
-        var add3 = data[i].address[2]
-        var yelpPhone = data[i].phone
-        var yelpPrice = data[i].price
-        var yelpRating = data[i].rating
-        $("#yelpResults").append('<a href='+data[i].yelp+' target="_blank"><div class="card text-center yelpCard">' +
-          '<img class="card-image-top yelpImage" src="'+data[i].img+'">' +
-          '<div class="card-body yelpInfo">' +
-            '<h4 id="yelpName" class="card-title">' + yelpName +' ('+labels[i]+') </h4>' +
-            '<p id="add1" class="card-text">' + add1 + '</p>' +
-            '<p id="add2" class="card-text">' + add2 + '</p>' +
-            // '<p id="add3" class="card-text">' + add3 + '</p>' +
-            '<p id="yelpPhone" class="card-text">Phone: ' + yelpPhone + '</p>' +
-            '<p id="yelpRating" class="card-text">Rating: ' + yelpRating + '</p>' +
-            '<p id="yelpPrice" class="card-text">' + yelpPrice + '</p>' +
-          '</div>' +
-        '</div>' +
-      '</div></a>')
-        location.push(data[i].coordinates);
-
-      }
-      initMap(newVenue, lati, longi, location);
-      // use this to get google map intergration and info we want to give out as output for all the store info
-    });
-  });
-}
-
-
-$("#submitBtn").on("click", function(event){
-    event.preventDefault();
-    if($("#bandName").val().trim() !== ""){
-      var bandname = $("#bandName").val().trim();
-
-      window.location.href = `/bands/${bandname}`;
-    }
-})
-
-$("h1").on("click", function(event){
-  event.preventDefault();
-    window.location.href = `/`;
-})
-$(".logoImg").on("click", function(event){
-  event.preventDefault();
-    window.location.href = `/`;
-})
-
-bandIs();
-
-// load map with preset venue first
-function initMapFirst() {
-
-  var theAnthem = {lat: 38.88848049, lng: -77.0302294} // replace capitalGrill with venue lati and longi
-  var map = new google.maps.Map(document.getElementById('artistMap'), {
-    zoom: 14, // zoom in to neighborboods near the venue
-    center: theAnthem
-  });
-  var marker = new google.maps.Marker({
-    position: theAnthem,
-    map: map
-    // icon: image,
-
-  })
-} // endo initMapFirst function
-//* Google Maps JS *//
-// get goole map function with marker set desired location
-function initMap(newVenue, lati, longi, location) {
-
-
-  // var lati = 38.88848049
-  // var longi = -77.0302294
-  newVenue = {lat: parseFloat(lati), lng: parseFloat(longi)} // replace capitalGrill with venue lati and longi
-  var map = new google.maps.Map(document.getElementById('artistMap'), {
-    zoom: 14, // zoom in to neighborboods near the venue
-    center: newVenue
-  });
-  if (!location) {
-    var musicIcon = "https://png.icons8.com/color/50/000000/musical.png";
-    var marker = new google.maps.Marker({
-      position: newVenue,
-      map: map,
-      icon: musicIcon
-    });
-  } else{
-    for (var i = 0; i < location.length; i++) {
-      location[i]
-      var musicIcon = "https://png.icons8.com/color/50/000000/musical.png";
-      var marker = new google.maps.Marker({
-        position: newVenue,
-        map: map,
-        icon: musicIcon
-      });
-
-      for (i = 0; i < location.length; i++) {
-        var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-        marker = new google.maps.Marker({
-          position: new google.maps.LatLng(parseFloat(location[i].latitude), parseFloat(location[i].longitude)),
-          map: map,
-          label: labels[i]
-        });
+  }
+} else {
+  stringHalf= (string.length-1)/2;
+  for (var i = 0; i < stringHalf; i++) {
+    if(string[i]==string[string.length-1-i]){
+      count+=1;
     }
   }
 }
-    // icon: image,
-
-
+if (count==stringHalf && string.length>1) {
+  console.log(process.argv[2]);
+  console.log("is palindrome");
+}else if(string.length==1){
+  console.log("You only have one letter")
+}else{
+  console.log(process.argv[2]);
+  console.log("is not palindrome")
 }
-initMap()
-
-// Adds a marker to the map and push to the array.
-      function addMarker(newVenue) {
-        var map = new google.maps.Map(document.getElementById('artistMap'), {
-          zoom: 10, // zoom in to neighborboods near the venue
-          center: newVenue
-        });
-        var marker = new google.maps.Marker({
-          position: newVenue,
-          map: map
-        });
-        markers.push(marker);
-      }
 ```
-addlinkup.com server.js
+## Write a function that outputs an array of the nth Fibonacci number. 
 ```javascript
-const express = require("express");
-const bodyParser = require("body-parser");
-const session = require("express-session");
-const path = require('path');
-const cheerio = require('cheerio');
-const request = require('request');
-const rp = require('request-promise');
-const schedule = require('node-schedule');
-const aws = require('aws-sdk');
-aws.config.region = 'us-east-2';
-// middleware
-//Session data is not saved in the cookie itself, just the session ID. Session data is stored server-side.
-const passport = require("./config/passport");
-//Passport uses the concept of strategies to authenticate requests.
-const PORT = process.env.PORT || 8080;
-//AWS link to our bucket
-const S3_BUCKET = process.env.S3_BUCKET;
-const db = require("./models");
+var processNum=[0, 1];
 
-const app = express();
-app.use(bodyParser.urlencoded({
-  extended: true
-}));
-app.use(bodyParser.json());
-app.use(express.static("public"));
-app.use(session({
-  secret: "keyboard cat",
-  resave: true,
-  saveUninitialized: true
-})); //session middleware init
-app.use(passport.initialize());
-app.use(passport.session());
-
-const exphbs = require("express-handlebars");
-//handlebars init
-app.engine("handlebars", exphbs({
-  defaultLayout: "main"
-}));
-app.set("view engine", "handlebars");
-
-require("./routes/routes.js")(app);
-require("./routes/user-api-routes.js")(app);
-require("./routes/link-api-routes.js")(app);
-
-// heroku boilerplate GET route to configure our S3 bucket
-app.get('/sign-s3', (req, res) => {
-  const s3 = new aws.S3();
-  const fileName = req.query['file-name'];
-  const fileType = req.query['file-type'];
-  const s3Params = {
-    Bucket: S3_BUCKET,
-    Key: fileName,
-    Expires: 60,
-    ContentType: fileType,
-    ACL: 'public-read'
-  };
-
-  s3.getSignedUrl('putObject', s3Params, (err, data) => {
-    if (err) {
-      console.log(err);
-      return res.end();
-    }
-    const returnData = {
-      signedRequest: data,
-      url: `https://${S3_BUCKET}.s3.amazonaws.com/${fileName}`
-    };
-    res.write(JSON.stringify(returnData));
-    res.end();
-  });
-});
-
-// This is our scraper route which will scrape the Moz top500 and return the results as JSON in a {0: url, 1: url} format
-app.get('/scrape/', (req, res) => {
-  let url = 'https://moz.com/top500';
-  request(url, function (error, response, html) {
-    let siteData = {};
-    let $ = cheerio.load(html);
-    $('td.url').each(function (i, elem) {
-      siteData[i] = [];
-      for (let j = 0; j < $(elem).children('a').length; j++) {
-        siteData[i].push($(elem).children('a').text().trim());
-      }
-    });
-    return res.json(siteData);
-  });
-});
-
-// function that creates a request to our scraper route using a promise, it then parses the data and in a for loop creates entries into the db
-const scraper = () => {
-  rp('https://getlinkup.herokuapp.com/scrape/').then(function (res) {
-    if (res != '') {
-      let top500 = res;
-      top500 = JSON.parse(top500);
-      let size = Object.keys(top500).length;
-      db.Top500.destroy({
-        where: {}
-      }).then(function () {
-        for (let i = 0; i < size; i++) {
-          let url = top500[`${i}`][0];
-          db.Top500.create({
-            url: url
-          }).catch(function (err) {
-            console.log(err);
-          });
-        }
-      });
-    }
-  });
-}
-
-const top500Validation = (linkToCheck, cb) => {
-  $.get('/scrape/', function (data) {
-    if (data != '') {
-      let top500 = data;
-      top500 = JSON.parse(top500);
-      let size = Object.keys(top500).length;
-      let result = false;
-      for (let i = 0; i < size; i++) {
-        let url = top500[`${i}`][0];
-        if (linkToCheck == url) {
-          result = true;
-          return result
-        }
-      }
-      top500 = result;
-    }
-  })
-}
-
-//cron! scheduling for our scraper to run every wednesday at 4:00am
-schedule.scheduleJob('* 4 * * 2', function () {
-  console.log('Time to scrape!');
-  scraper();
-});
-
-//this cronjob is set to run every day at midnight to reset the dailyClicks in the db
-schedule.scheduleJob('00 00 * * *', function () {
-  console.log('Time to clear the daily clicks!');
-  db.Link.update({
-    dailyClicks: 0
-  }, {
-    where: {}
-  });
-});
-
-db.sequelize.sync().then(() => {
-  app.listen(PORT, () => {
-    console.log("==> 🌎  Listening on port %s. Visit http://localhost:%s/ in your browser.", PORT);
-  });
-});
-```
-date night out app.js
-```javascript
-//Import React
-import React, {Component} from 'react';
-// import { Render } from 'react-dom';
-import './App.css';
-/*import components*/
-import Home from './components/UserHome/userHome';
-import Navbar from './components/Navbar/navbar';
-import Search from './components/Search/search';
-import Landing from './components/Landing/landing';
-
-// import react router deps
-import {Redirect, Router, Route, Switch} from 'react-router-dom';
-// import { Provider } from 'react-redux'; import store, { history } from
-// './store';
-
-import Callback from './Callback/Callback';
-import Auth from './Auth/Auth';
-import history from './history';
-
-// Apollo Client Config
-import ApolloClient from "apollo-boost";
-import { ApolloProvider } from "react-apollo";
-const client = new ApolloClient();
-
-//auth0 stuff
-const auth = new Auth();
-
-const handleAuthentication = ({location}) => {
-  if (/access_token|id_token|error/.test(location.hash)) {
-    auth.handleAuthentication();
+var n= process.argv[2];
+if (process.argv[2] && n%1==0) {
+if(n>1){
+  for (var i = 2; i <= n; i++) {
+    var added= processNum[i-1]+processNum[i-2];
+    processNum.push(added);
   }
+  console.log(processNum.join(" + "))
+  console.log(processNum[n]);
+}else if(n==0){
+  console.log("0");
+  console.log(processNum[n]);
+}else{
+  console.log(processNum.join(" + "))
+  console.log(processNum[n]);
 }
-//autho0 handler
-class App extends Component {
+} else{
+  console.log("need to write a number")
+}
+
+```
+
+## DateNight search component 
+
+```javascript
+import React, {Component} from "react";
+import MapView from '../mapView/mapView';
+import Input from './input'
+import { ApolloConsumer } from "react-apollo";
+import {GET_YELP_RESULT, CREATE_ITINERARY} from './queries'
+import {Modal, Button} from 'react-materialize'
+import {Mutation} from 'react-apollo'
+
+// Jon TODO: add remove/update itinerary buttons w/functionality, deal with the modal
+class Search extends Component {
+  state = {
+    yelpSearch: null,
+    search: '',
+    location: '',
+    name: '',
+    date: '',
+    time: '',
+    currentItinerary: [],
+    itineraries: [],
+    profile:{}
+  }
+  componentWillMount() {
+    const { userProfile, getProfile } = this.props.auth;
+    if (!userProfile) {
+      getProfile((err, profile) => {
+        this.setState({ profile });
+      });
+    } else {
+      this.setState({ profile: userProfile });
+    }
+  }
+
+  onYelpFetched = x => this.setState({ yelpSearch: x })
+
+  handleInputChange = event => {
+    const {name, value} = event.target;
+    this.setState({[name]: value});
+  }
+
   render() {
+    console.log(this.state.profile);
     return (
       <div>
-        <ApolloProvider client={client}>
-        <Router history={history}>
-          <div>
-          <Route exact path="/" render={(props) =>(
-            !auth.isAuthenticated() ? (
-              <Landing auth={auth} {...props} />
-            ) : (
-              <Redirect to="/home"/>
-            )
-          )} />
-            <Route
-              path="/"
-              render={(props) =><Navbar auth = {
-              auth
-            }
-            {
-              ...props
-            } />}/>
-
-            {/* <ApolloProvider client={client}>
-            <YelpSearch/>
-            </ApolloProvider> */}
-            <Switch>
-              <Route exact path="/home" render={(props) =>(
-                !auth.isAuthenticated() ? (
-                  <Redirect to="/"/>
-                ) : (
-                  <Home auth={auth} {...props} />
-                )
-              )} />
-              <Route exact path="/search" render={(props) =>(
-                !auth.isAuthenticated() ? (
-                  <Redirect to="/"/>
-                ) : (
-                  <Search auth={auth} {...props} />
-                )
-              )} />
-            </Switch>
-            <Route
-              path="/callback"
-              render={(props) => {
-              handleAuthentication(props);
-              return <Callback {...props}/>
-            }}/>
+         <video autoPlay muted id="homeVideo">
+                    <source src='http://www.coverr.co/s3/mp4/Broadway.mp4'
+                        type="video/mp4" />
+                    </video>
+        {/*  Left Column
+                        tabs: upcoming | Planning | Past
+                        Render array of itins*/}
+        <div className="row container content">
+          <div className="sidebar col s12 m3 ">
+            <div className="row">
+            <h3 className="center-align">Search</h3>
+              {/* <p>Search tabs router goes here</p> */}
+              <form>
+                <Input className="main-content"
+                  onChange={this.handleInputChange}
+                  name="search"
+                  placeholder="Search"/>
+                <Input
+                  onChange={this.handleInputChange}
+                  name="location"
+                  placeholder="Location (Zip, Address, City)"/>
+                  <ApolloConsumer>
+                    {client => (
+                      <div
+                        className=' search-page-btn hoverable waves-effect waves-light btn-small center-align'
+                        onClick={async() => {
+                        const {data} = await client.query({
+                          query: GET_YELP_RESULT,
+                          variables: {
+                            search: this.state.search,
+                            location: this.state.location
+                          }
+                        })
+                        this.onYelpFetched(data.yelpSearch)
+                      }}>
+                        Search
+                      </div>
+                    )}
+                  </ApolloConsumer>
+              </form>
+            </div>
+              {this.state.yelpSearch
+                ?
+                this
+                  .state
+                  .yelpSearch
+                  .map(({_id, name, location, url, price, phone, coordinates}, i) => (
+                    <div key={_id}>
+                      <h6>
+                        <a  href={`${url}`} target="_blank">{`${i + 1} ${name}`}</a>
+                        {` ${price}`}
+                      </h6>
+                      <p>{`${location}`}</p>
+                      <p>{`${phone}`}</p>
+                      <div className='btn-small hoverable search-page-btn' onClick={async ()=>{
+                        const itinItem = {
+                          _id: this.state.currentItinerary.length + 1,
+                          name: name,
+                          location: location,
+                          url: url,
+                          price: price,
+                          phone: phone,
+                          coordinates: coordinates
+                        }
+                        await this.setState({currentItinerary: [...this.state.currentItinerary, itinItem]})
+                      }}>Add</div>
+                    </div>
+                  ))
+                : <p>Results will appear here after you hit search!</p>}
+            </div>
+          <div className="main-content col s12 m3">
+            <h3 className="center-align">Itinerary</h3>
+            {this.state.currentItinerary.length > 0 ? this.state.currentItinerary.map(({name, location, url, phone}, i) => (
+                    <div key={url}>
+                      <h6>
+                        <a href={`${url}`} target="_blank">{`${name}`}</a>
+                      </h6>
+                      <p>{`${location}`}</p>
+                      <p>{`${phone}`}</p>
+                      <div className='btn-small search-page-btn' onClick={async ()=>{
+                        await this.setState((prevState) => ({
+                          currentItinerary: prevState.currentItinerary.filter((_, j) => j !== i)
+                        }))
+                      }}>Remove</div>
+                    </div>
+            )) : <p>Your Current Itinerary will appear here once you've added something to it</p>}
+            {this.state.currentItinerary.length > 0 ?
+            <Modal
+                header={<h5>Review Itinerary</h5>}
+              trigger={<Button className="btn-small finalize-btn search-page-btn">Name This Date</Button>}
+              >
+                <Input
+              className="result-name"
+                onChange={this.handleInputChange}
+                name="name"
+                placeholder="Name your Itinerary"/>
+              <Input
+              className="result-body"
+               onChange={this.handleInputChange}
+               name="date"
+               type="date"
+               placeholder=""/>
+                <Input
+                className="result-body"
+                onChange={this.handleInputChange}
+                name="time"
+                type="time"
+                placeholder=""/>
+              {this.state.currentItinerary.map(({name, location, url, phone}, i) => (
+                <div key={url}>
+                  <h6>
+                    <a className="result-name" href={`${url}`} target="_blank">{`${name}`}</a>
+                  </h6>
+                  <p className="result-body">{`${location}`}</p>
+                  <p className="result-body">{`${phone}`}</p>
+                  <div className='btn' onClick={async ()=>{
+                        await this.setState((prevState) => ({
+                          currentItinerary: prevState.currentItinerary.filter((_, j) => j !== i)
+                        }))
+                      }}>
+                     Delete
+                  </div>
+                </div>
+              ))}
+            <Mutation mutation={CREATE_ITINERARY}
+            onCompleted={(data)=>{
+            const activities = data.createItinerary.activities.map(x => {
+              const presentable =`
+              Name: ${x.name}
+              Location: ${x.location}
+              Phone: ${x.phone}`
+               return presentable
+              }
+              )
+            alert(`     Itinerary Created!
+            Name: ${data.createItinerary.name}
+            Date: ${data.createItinerary.date}
+            Time: ${data.createItinerary.time}
+            Activities: ${activities}`
+            )}}>
+            {(createItinerary, error) => (
+            <Button
+              className="btn-large finalize-btn" onClick={async e => {
+                e.preventDefault()
+                if (this.state.name === '' || this.state.date === '' || this.state.time === '' || this.state.currentItinerary.length === 0) {
+                  return alert('Please fill out all fields')
+                }
+                console.log(this.state.profile.sub);
+                await createItinerary({ variables: { name: this.state.name, date: this.state.date, time: this.state.time, activities: this.state.currentItinerary, userauth: this.state.profile.sub}})
+                if (error.error !== undefined) {
+                  console.log(error.error)
+                }
+              }}>
+              Finalize
+            </Button>
+            )}
+            </Mutation>
+            </Modal>
+            : ''}
+            </div>
+            {/* end of Itinerary code */}
+            <div className="col s12 m3">
+              {/* <h2 align="center">Map</h2> */}
+                <MapView className=" map" yelpSearch={this.state.yelpSearch} currentItinerary={this.state.currentItinerary}/>
           </div>
-        </Router>
-        </ApolloProvider>
+        </div>
       </div>
-    );
+    )
   }
-}
+};
 
-export default App;
+//** THIS IS THE LAST LINE OF CODE **
+export default Search;
 
 ```
