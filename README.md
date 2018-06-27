@@ -278,7 +278,6 @@ class Search extends Component {
   }
 };
 
-//** THIS IS THE LAST LINE OF CODE **
 export default Search;
 
 ```
