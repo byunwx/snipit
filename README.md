@@ -1,256 +1,12 @@
 # snipit
-CRUD
+Catch band it logic.js
 ```javascript
-
-module.exports  = (app)=>{
-    // create a new link
-    app.post("/api/link/new", function(req,res){
-        db.Link.create({
-            title: req.body.title,
-            url: req.body.url,
-            shortenedUrl: req.body.shortenedUrl,
-            description: req.body.description,
-            shared: req.body.shared,
-            top500: req.body.top500,
-            UserId: req.body.UserId
-        }).then(function(dbLink){
-            res.json(dbLink);
-        })
-    })
-    // find all links in database
-    app.get("/api/link/data", (req,res)=>{
-        db.Link.findAll({
-            include:[db.User]
-        })
-        .then((data)=>{
-            res.json(data) // will be edited to not display user password
-
-            })
-    })
-    // find all the information for a specific link
-    app.get("/api/link/:id",(req,res)=>{
-        db.Link.findOne({
-            include:[db.User],
-            where:{id:req.params.id,
-                }
-
-        }).then((data)=>{
-            res.json(data)// will be edited to not display user password
-        })
-    })
-    // delete a link
-    app.delete("/api/link/delete", (req,res)=>{
-        db.Link.destroy({
-            where:{id:req.body.id}
-        }).then((data)=>{
-            res.json(data)
-        })
-    })
-    // update a link
-    app.put("/api/link/update", (req,res)=>{
-        db.Link.update(
-            req.body,
-            {where:{id: req.body.id}}
-        ).then((data)=>{
-            res.json(data)
-        })
-    })
-}
-
-```
-
-```javascript
-
-class App extends Component {
-  render() {
-    return (
-      <div>
-        <ApolloProvider client={client}>
-        <Router history={history}>
-          <div>
-          <Route exact path="/" render={(props) =>(
-            !auth.isAuthenticated() ? (
-              <Landing auth={auth} {...props} />
-            ) : (
-              <Redirect to="/home"/>
-            )
-          )} />
-            <Route
-              path="/"
-              render={(props) =><Navbar auth = {
-              auth
-            }
-            {
-              ...props
-            } />}/>
-            <Switch>
-              <Route exact path="/home" render={(props) =>(
-                !auth.isAuthenticated() ? (
-                  <Redirect to="/"/>
-                ) : (
-                  <Home auth={auth} {...props} />
-                )
-              )} />
-              <Route exact path="/search" render={(props) =>(
-                !auth.isAuthenticated() ? (
-                  <Redirect to="/"/>
-                ) : (
-                  <Search auth={auth} {...props} />
-                )
-              )} />
-            </Switch>
-            <Route
-              path="/callback"
-              render={(props) => {
-              handleAuthentication(props);
-              return <Callback {...props}/>
-            }}/>
-          </div>
-        </Router>
-        </ApolloProvider>
-      </div>
-    );
-  }
-}
-
-```
-SERVER
-```javascript
-
-const passport = require("./config/passport");
-//Passport uses the concept of strategies to authenticate requests.
-const PORT = process.env.PORT || 8080;
-//AWS link to our bucket
-const S3_BUCKET = process.env.S3_BUCKET;
-const db = require("./models");
-
-const app = express();
-app.use(bodyParser.urlencoded({
-  extended: true
-}));
-app.use(bodyParser.json());
-app.use(express.static("public"));
-app.use(session({
-  secret: "keyboard cat",
-  resave: true,
-  saveUninitialized: true
-})); //session middleware init
-app.use(passport.initialize());
-app.use(passport.session());
-
-const exphbs = require("express-handlebars");
-//handlebars init
-app.engine("handlebars", exphbs({
-  defaultLayout: "main"
-}));
-app.set("view engine", "handlebars");
-
-//require("***routes.js")(app);
-
-// heroku boilerplate GET route to configure our S3 bucket
-app.get('/sign-s3', (req, res) => {
-  const s3 = new aws.S3();
-  const fileName = req.query['file-name'];
-  const fileType = req.query['file-type'];
-  const s3Params = {
-    Bucket: S3_BUCKET,
-    Key: fileName,
-    Expires: 60,
-    ContentType: fileType,
-    ACL: 'public-read'
-  };
-
-  s3.getSignedUrl('putObject', s3Params, (err, data) => {
-    if (err) {
-      console.log(err);
-      return res.end();
-    }
-    const returnData = {
-      signedRequest: data,
-      url: `https://${S3_BUCKET}.s3.amazonaws.com/${fileName}`
-    };
-    res.write(JSON.stringify(returnData));
-    res.end();
-  });
-});
-
-// This is our scraper route which will scrape the Moz top500 and return the results as JSON in a {0: url, 1: url} format
-app.get('/scrape/', (req, res) => {
-  let url = 'https://moz.com/top500';
-  request(url, function (error, response, html) {
-    let siteData = {};
-    let $ = cheerio.load(html);
-    $('td.url').each(function (i, elem) {
-      siteData[i] = [];
-      for (let j = 0; j < $(elem).children('a').length; j++) {
-        siteData[i].push($(elem).children('a').text().trim());
-      }
-    });
-    return res.json(siteData);
-  });
-});
-
-// function that creates a request to our scraper route using a promise, it then parses the data and in a for loop creates entries into the db
-const scraper = () => {
-  rp('https://getlinkup.herokuapp.com/scrape/').then(function (res) {
-    if (res != '') {
-      let top500 = res;
-      top500 = JSON.parse(top500);
-      let size = Object.keys(top500).length;
-      db.Top500.destroy({
-        where: {}
-      }).then(function () {
-        for (let i = 0; i < size; i++) {
-          let url = top500[`${i}`][0];
-          db.Top500.create({
-            url: url
-          }).catch(function (err) {
-            console.log(err);
-          });
-        }
-      });
-    }
-  });
-}
-
-const top500Validation = (linkToCheck, cb) => {
-  $.get('/scrape/', function (data) {
-    if (data != '') {
-      let top500 = data;
-      top500 = JSON.parse(top500);
-      let size = Object.keys(top500).length;
-      let result = false;
-      for (let i = 0; i < size; i++) {
-        let url = top500[`${i}`][0];
-        if (linkToCheck == url) {
-          result = true;
-          return result
-        }
-      }
-      top500 = result;
-    }
-  })
-}
-
-//this cronjob is set to run every day at midnight to reset the dailyClicks in the db
-schedule.scheduleJob('00 00 * * *', function () {
-  console.log('Time to clear the daily clicks!');
-  db.Link.update({
-    dailyClicks: 0
-  }, {
-    where: {}
-  });
-});
-
-db.sequelize.sync().then(() => {
-  app.listen(PORT, () => {
-    console.log("==> 🌎  Listening on port %s. Visit http://localhost:%s/ in your browser.", PORT);
-  });
-});
-
-```
-LOGIC
-```javascript
+/ global map variables
+var markers = [];
+var lati;
+var longi;
+var newVenue = "";
+// var map;
 
 var bandIs = function (){
 
@@ -259,9 +15,8 @@ var bandIs = function (){
   var lastUrl= thing[thing.length-1];
 
     var bandQuery = lastUrl;
-    //concert info
+
     var queryURL = "https://rest.bandsintown.com/artists/" + bandQuery + "/events?app_id=bandit";
-    //artist info
     var queryURL2 = "https://rest.bandsintown.com/artists/" + bandQuery + "?app_id=bandit";
 
     $.ajax({
@@ -277,8 +32,134 @@ var bandIs = function (){
       $("#artistImage").append(newAncher);
       $("#artistName").prepend(newName);
     });
-    //  band in town api
+    //  band is in town api
+    $.ajax({
+        url: queryURL,
+        method: "GET"
+    }).then(function(resultsEvent){
+
+        // populate map with preset coordinates to the Anthem in DC
+        initMapFirst();
+        // looping through the array of upcoming events
+      if (resultsEvent.length==0) {
+          alert("There is no concert or event set up for band :"+bandQuery);
+        }
+        for ( var i =0; i<resultsEvent.length; i++){
+
+            var rawDate=resultsEvent[i].datetime.split("T");
+            var dateArr=[];
+            dateArr.push(rawDate[0]);
+            dateArr.push(" Time: ");
+            var time=rawDate[1].split(":");
+            if (time[0]>12){
+              time[0]-=12;
+              rawDate[1]=time.join(":");
+              dateArr.push(rawDate[1]);
+              dateArr.push("pm");
+            }else{
+              dateArr.push(rawDate[1]);
+              dateArr.push("am");
+            }
+
+            var date = dateArr.join(" ");
+
+        // looping through the array of upcoming events
+
+
+            var venue = resultsEvent[i].venue;
+            var lat = venue.latitude;
+            var long = venue.longitude;
+            var line = $("<hr>")
+            var div = $("<div>").attr({
+                "id": venue.name,
+                "class": "event",
+            });
+            var ticket =$("<a class='btn bg-secondary getTix'>").text("GET Ticket");
+              ticket.attr({"href": resultsEvent[i].url, "target":"_blank"});
+            var showtime = $("<p class='date'>").text("Date: " + date);
+            var city = $("<p class='city'>").text("City: " +venue.city);
+            var name = $("<p class='venueButtons'>").text(venue.name).attr({
+                "class": "venue",
+                // Venue location information is set to the the data types below
+                "data-venue": venue.name,
+                "data-date": resultsEvent[i].datetime,
+                "data-city": venue.city,
+                "data-lat": lat,
+                "data-long": long
+            });
+            if (i==0) {
+              initMap(venue.name, venue.latitude, venue.longitude);
+            };
+            // render the information to the html page, this will be adjusted
+            div.append(city, name, showtime, ticket, line);
+            // this ajax call works but is currently being appended to a placeholder that does not exist
+            $("#artistLocation").append(div);
+
+        }
+        yelpfunction();
+        return(keys(bandQuery))
+    })
 }
+
+// spotify functionality
+// brings access tokens from server side to client and refreshes them
+var keys = function(bandQuery){
+  var spotifyQuery=bandQuery
+
+  $("#dump").empty();
+  $.get("/api", function(data){
+
+      var refresh  = data[0].refresh_token;
+  return refreshCall(refresh)
+  })
+  var refreshCall =function(refresh){
+      $.ajax({
+          url: "/refresh_token",
+          data: {
+              "refresh_token": refresh
+          }
+      }).done(function(data){
+          access_token = data.access_token;
+      return firstCall(access_token, spotifyQuery)
+  })}
+}
+var firstCall = function(access_token, spotifyQuery){
+  $.ajax({
+  url: 'https://api.spotify.com/v1/search?q=' + spotifyQuery + '&type=Artist',
+  beforeSend: function(xhr) {
+       xhr.setRequestHeader("Authorization", "Bearer " + access_token)
+  }, success: function(data){
+      var id = data.artists.items[0].id;
+      return topTracks(id, access_token);
+
+  }
+  })
+}
+var topTracks= function(id, access_token){
+  $.ajax({
+      url: "https://api.spotify.com/v1/artists/" + id + "/top-tracks?country=es",
+      beforeSend: function(xhr) {
+          xhr.setRequestHeader("Authorization", "Bearer " + access_token)
+  }, success: function(data) {
+      for (var i=0; i<3; i++){
+          var topID = data.tracks[i].id;
+          var div = $("<div>").attr("class", "tracks");
+          var player = $("<iframe>").attr({
+              "src": "https://open.spotify.com/embed/track/" + topID,
+              "frameborder": 0,
+              "allowtransparency": "true",
+              "allow": "encrypted-media",
+              "class": "topTracks"
+          })
+          div.append(player);
+          $("#dump").append(div);
+          // $("#dump").append(player);
+      }
+  }
+  })
+}
+//var yelpfunction= function(){
+  // function that occurs when the user pick a single venue
 
 var yelpfunction=function(){
   $(".venue").on("click", function(){
@@ -335,5 +216,101 @@ var yelpfunction=function(){
     });
   });
 }
+
+
+$("#submitBtn").on("click", function(event){
+    event.preventDefault();
+    if($("#bandName").val().trim() !== ""){
+      var bandname = $("#bandName").val().trim();
+
+      window.location.href = `/bands/${bandname}`;
+    }
+})
+
+$("h1").on("click", function(event){
+  event.preventDefault();
+    window.location.href = `/`;
+})
+$(".logoImg").on("click", function(event){
+  event.preventDefault();
+    window.location.href = `/`;
+})
+
+bandIs();
+
+// load map with preset venue first
+function initMapFirst() {
+
+  var theAnthem = {lat: 38.88848049, lng: -77.0302294} // replace capitalGrill with venue lati and longi
+  var map = new google.maps.Map(document.getElementById('artistMap'), {
+    zoom: 14, // zoom in to neighborboods near the venue
+    center: theAnthem
+  });
+  var marker = new google.maps.Marker({
+    position: theAnthem,
+    map: map
+    // icon: image,
+
+  })
+} // endo initMapFirst function
+//* Google Maps JS *//
+// get goole map function with marker set desired location
+function initMap(newVenue, lati, longi, location) {
+
+
+  // var lati = 38.88848049
+  // var longi = -77.0302294
+  newVenue = {lat: parseFloat(lati), lng: parseFloat(longi)} // replace capitalGrill with venue lati and longi
+  var map = new google.maps.Map(document.getElementById('artistMap'), {
+    zoom: 14, // zoom in to neighborboods near the venue
+    center: newVenue
+  });
+  if (!location) {
+    var musicIcon = "https://png.icons8.com/color/50/000000/musical.png";
+    var marker = new google.maps.Marker({
+      position: newVenue,
+      map: map,
+      icon: musicIcon
+    });
+  } else{
+    for (var i = 0; i < location.length; i++) {
+      location[i]
+      var musicIcon = "https://png.icons8.com/color/50/000000/musical.png";
+      var marker = new google.maps.Marker({
+        position: newVenue,
+        map: map,
+        icon: musicIcon
+      });
+
+      for (i = 0; i < location.length; i++) {
+        var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        marker = new google.maps.Marker({
+          position: new google.maps.LatLng(parseFloat(location[i].latitude), parseFloat(location[i].longitude)),
+          map: map,
+          label: labels[i]
+        });
+    }
+  }
+}
+    // icon: image,
+
+
+}
+initMap()
+
+// Adds a marker to the map and push to the array.
+      function addMarker(newVenue) {
+        var map = new google.maps.Map(document.getElementById('artistMap'), {
+          zoom: 10, // zoom in to neighborboods near the venue
+          center: newVenue
+        });
+        var marker = new google.maps.Marker({
+          position: newVenue,
+          map: map
+        });
+        markers.push(marker);
+      }
+
 
 ```
