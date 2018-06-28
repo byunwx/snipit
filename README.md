@@ -64,15 +64,6 @@ if(n>1){
 ## DateNight search component 
 
 ```javascript
-/*dependencies*/
-import React, {Component} from "react";
-import MapView from '../mapView/mapView';
-import Input from './input'
-import { ApolloConsumer } from "react-apollo";
-import {GET_YELP_RESULT, CREATE_ITINERARY} from './queries'
-import {Modal, Button} from 'react-materialize'
-import {Mutation} from 'react-apollo'
-
 // Jon TODO: add remove/update itinerary buttons w/functionality, deal with the modal
 class Search extends Component {
   state = {
@@ -86,16 +77,6 @@ class Search extends Component {
     itineraries: [],
     profile:{}
   }
-  componentWillMount() {
-    const { userProfile, getProfile } = this.props.auth;
-    if (!userProfile) {
-      getProfile((err, profile) => {
-        this.setState({ profile });
-      });
-    } else {
-      this.setState({ profile: userProfile });
-    }
-  }
 
   onYelpFetched = x => this.setState({ yelpSearch: x })
 
@@ -108,13 +89,6 @@ class Search extends Component {
     console.log(this.state.profile);
     return (
       <div>
-         <video autoPlay muted id="homeVideo">
-                    <source src='http://www.coverr.co/s3/mp4/Broadway.mp4'
-                        type="video/mp4" />
-                    </video>
-        {/*  Left Column
-                        tabs: upcoming | Planning | Past
-                        Render array of itins*/}
         <div className="row container content">
           <div className="sidebar col s12 m3 ">
             <div className="row">
@@ -172,6 +146,7 @@ class Search extends Component {
                           phone: phone,
                           coordinates: coordinates
                         }
+                        {/*saving it to state*/}
                         await this.setState({currentItinerary: [...this.state.currentItinerary, itinItem]})
                       }}>Add</div>
                     </div>
@@ -199,23 +174,6 @@ class Search extends Component {
                 header={<h5>Review Itinerary</h5>}
               trigger={<Button className="btn-small finalize-btn search-page-btn">Name This Date</Button>}
               >
-                <Input
-              className="result-name"
-                onChange={this.handleInputChange}
-                name="name"
-                placeholder="Name your Itinerary"/>
-              <Input
-              className="result-body"
-               onChange={this.handleInputChange}
-               name="date"
-               type="date"
-               placeholder=""/>
-                <Input
-                className="result-body"
-                onChange={this.handleInputChange}
-                name="time"
-                type="time"
-                placeholder=""/>
               {this.state.currentItinerary.map(({name, location, url, phone}, i) => (
                 <div key={url}>
                   <h6>
@@ -243,9 +201,6 @@ class Search extends Component {
               }
               )
             alert(`     Itinerary Created!
-            Name: ${data.createItinerary.name}
-            Date: ${data.createItinerary.date}
-            Time: ${data.createItinerary.time}
             Activities: ${activities}`
             )}}>
             {(createItinerary, error) => (
@@ -268,11 +223,6 @@ class Search extends Component {
             </Modal>
             : ''}
             </div>
-            {/* end of Itinerary code */}
-            <div className="col s12 m3">
-              {/* <h2 align="center">Map</h2> */}
-                <MapView className=" map" yelpSearch={this.state.yelpSearch} currentItinerary={this.state.currentItinerary}/>
-          </div>
         </div>
       </div>
     )
